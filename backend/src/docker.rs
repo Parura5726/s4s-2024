@@ -1,6 +1,6 @@
 use std::process::Command;
 
-pub const JAVA_IMAGE: &str = "cimg/openjdk:17.0";
+pub const JAVA_IMAGE: &str = "cimg/openjdk:21.0";
 pub const PYTHON_IMAGE: &str = "python:3-bullseye";
 pub const CPP_IMAGE: &str = "ghcr.io/clicepfl/s4s-2024-cpp:main";
 

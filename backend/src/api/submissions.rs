@@ -68,7 +68,7 @@ impl Submission {
         })
     }
 
-    pub async fn start(&self) -> Result<Child, Error> {
+    pub async fn start(&self, socket_adr: String) -> Result<Child, Error> {
         let metadata = fs::metadata(self.code.clone()).await;
         if metadata.is_err() || metadata.is_ok_and(|m| m.len() == 0) {
             return Err(Error::AIFailed {
@@ -88,6 +88,10 @@ impl Submission {
             BASE64_STANDARD.encode(code.as_bytes())
         };
 
+        // TODO: Rewrite java file to use sockets
+        // rewrite the return json and webapp to have the move in a separate field than the
+        // console output
+
         let (image, command) = match self.lang {
             Language::Cpp => (
                 CPP_IMAGE,
@@ -105,6 +109,7 @@ impl Submission {
             ),
         };
 
+        let socket_arg = "SOCKET=".to_owned() + &socket_adr;
         Command::new("docker")
             .args([
                 "run",
@@ -112,6 +117,8 @@ impl Submission {
                 "root",
                 "-i",
                 image,
+//                "-e",
+//                &socket_arg,
                 "sh",
                 "-c",
                 command.as_str(),

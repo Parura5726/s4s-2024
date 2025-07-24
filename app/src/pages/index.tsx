@@ -99,11 +99,11 @@ export default function Home({ username }: { username: string }) {
               msgType: ConsoleMessageType.Error,
             })
             .concat({
-              msg: turnStatus.move
-                ? turnStatus.move.length == 1
-                  ? `Move from ${turnStatus.move[0].from} to ${turnStatus.move[0].to} is invalid`
+              msg: turnStatus.move_
+                ? turnStatus.move_.length == 1
+                  ? `Move from ${turnStatus.move_[0].from} to ${turnStatus.move_[0].to} is invalid`
                   : "Sequence of moves is invalid : \n" +
-                    turnStatus.move
+                    turnStatus.move_
                       .map((m) => `-> Move from ${m.from} to ${m.to}`)
                       .join("\n")
                 : "No move provided",
@@ -118,10 +118,10 @@ export default function Home({ username }: { username: string }) {
           break;
       }
 
-      if (turnStatus.ai_output && turnStatus.ai_output.length > 0) {
+      if (turnStatus.ai_out && turnStatus.ai_out.length > 0) {
         newConsoleOutput = newConsoleOutput
           .concat({
-            msg: turnStatus.ai_output,
+            msg: turnStatus.ai_out,
             msgType: ConsoleMessageType.Warning,
           });
       }

@@ -1,3 +1,5 @@
+import socket
+
 class Piece:
     # piece_type: M pour pion, K pour dame
     # piece_color: B pour noir, W pour blanc

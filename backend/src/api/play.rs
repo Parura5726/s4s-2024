@@ -1,5 +1,7 @@
 use super::{submissions::Submission, AppState, Error, User};
-use crate::game::{GameState, GameStatus, Move, Player, TurnStatus};
+use crate::{
+    game::{GameState, GameStatus, Move, Player, TurnStatus},
+    config::config};
 use regex::Regex;
 use rocket::{
     futures::{io::BufReader, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt},
@@ -22,13 +24,23 @@ fn convert_cell_id(id: &[char]) -> (usize, usize) {
     (id[0] as usize - '0' as usize, id[1] as usize - '0' as usize)
 }
 
+struct AiOutput {
+    move_: String,
+    console: String,
+}
+
 impl Game {
-    pub async fn play_ai(&mut self, submission: Submission) -> Result<String, Error> {
-        let mut child = submission.start().await?;
+    pub async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
+        // We use UNIX sockets for communication with the children scripts
+        // There is one socket per user
+
+        let socket_adr = format!("{}/ai_{}", config().data_dir, submission.name);
+        let mut child = submission.start(socket_adr).await?;
 
         let mut stdin = child.stdin.take().unwrap();
         let mut stdout = BufReader::new(child.stdout.take().unwrap());
         let mut stderr = BufReader::new(child.stderr.take().unwrap());
+        // TODO: Start listening to socket
 
         stdin
             .write_all(format!("{}\n", self.checkers.current_player).as_bytes())
@@ -42,22 +54,16 @@ impl Game {
 
         child.status().await?;
 
-        let mut line = String::new();
-        stdout.read_line(&mut line).await?;
-        let line = line.trim();
+        let mut out = String::new();
+        stdout.read_to_string(&mut out).await?;
 
-        let mut ai_output = String::new();
-        stderr.read_to_string(&mut ai_output).await?;
+        let mut err = String::new();
+        stderr.read_to_string(&mut err).await?;
+        let ai_output = out + &err;
 
-        if !AI_OUTPUT_REGEX.is_match(line) {
-            return Err(Error::AIFailed {
-                error: super::AIError::InvalidOutput,
-                ai_output,
-                move_: None,
-            });
-        }
-
-        let seq = line
+        // TODO: await socket
+        let mov = String::from("61,50;");
+        let seq = mov
             .split(";")
             .filter(|m| !m.is_empty())
             .map(|m| {
@@ -78,7 +84,7 @@ impl Game {
             });
         }
 
-        Ok(ai_output)
+        Ok(AiOutput{ move_: mov, console: ai_output })
     }
 
     pub async fn play_human(&mut self, moves: Vec<Move>) -> Result<(), Error> {
@@ -118,7 +124,8 @@ pub async fn start(
         checkers: checkers.clone(),
     };
 
-    let mut ai_output = String::new();
+    let mut ai_move = String::new();
+    let mut console = String::new();
     if !is_first_player {
         let submission = state
             .lock()
@@ -128,7 +135,7 @@ pub async fn start(
             .ok_or(Error::NotFound)?
             .clone();
 
-        ai_output = game.play_ai(submission).await?;
+        AiOutput { move_: ai_move, console: console } = game.play_ai(submission).await?;
     }
 
     let checkers = game.checkers.clone();
@@ -138,7 +145,8 @@ pub async fn start(
 
     Ok(Json(TurnStatus {
         game: checkers,
-        ai_output,
+        move_: ai_move,
+        ai_out: console,
     }))
 }
 
@@ -169,7 +177,8 @@ pub async fn play(
 
     Ok(Json(TurnStatus {
         game: lock.checkers.clone(),
-        ai_output: output,
+        ai_out: output.console,
+        move_: output.move_,
     }))
 }
 
