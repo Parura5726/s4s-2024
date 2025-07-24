@@ -1,18 +1,17 @@
 use super::{submissions::Submission, AppState, Error, User};
 use crate::{
-    game::{GameState, GameStatus, Move, Player, TurnStatus},
-    config::config};
-use regex::Regex;
+    game::{GameState, GameStatus, Move, Player, TurnStatus}};
 use rocket::{
-    futures::{io::BufReader, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt},
+    futures::{io::BufReader, AsyncReadExt, AsyncWriteExt},
     get, post,
     serde::json::Json,
     tokio::sync::Mutex,
 };
-use std::sync::{Arc, LazyLock};
-
-static AI_OUTPUT_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new("^(\\d{2},\\d{2};)+$").unwrap());
+use std::{
+    sync::{Arc},
+    os::unix::net::UnixListener,
+    io::Read,
+};
 
 #[derive(Debug)]
 pub struct Game {
@@ -30,17 +29,20 @@ struct AiOutput {
 }
 
 impl Game {
-    pub async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
-        // We use UNIX sockets for communication with the children scripts
+    async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
+        // We use UNIX sockets for communication with the submission scripts
         // There is one socket per user
 
-        let socket_adr = format!("{}/ai_{}", config().data_dir, submission.name);
-        let mut child = submission.start(socket_adr).await?;
+        // Clean up old sockets and prepare a new one
+        let socket_adr = format!("/tmp/ai_{}.sock", submission.name);
+        let _ = std::fs::remove_file(&socket_adr);
+
+        let mut child = submission.start(socket_adr.clone()).await?;
 
         let mut stdin = child.stdin.take().unwrap();
         let mut stdout = BufReader::new(child.stdout.take().unwrap());
         let mut stderr = BufReader::new(child.stderr.take().unwrap());
-        // TODO: Start listening to socket
+        let listener = UnixListener::bind(socket_adr)?;
 
         stdin
             .write_all(format!("{}\n", self.checkers.current_player).as_bytes())
@@ -51,7 +53,6 @@ impl Game {
             .write_all(self.checkers.to_csv_string().as_bytes())
             .await
             .map_err(Error::from)?;
-
         child.status().await?;
 
         let mut out = String::new();
@@ -61,8 +62,17 @@ impl Game {
         stderr.read_to_string(&mut err).await?;
         let ai_output = out + &err;
 
-        // TODO: await socket
-        let mov = String::from("61,50;");
+        println!("output for user {}:\"{}\"", submission.name, ai_output);
+        // Read socket
+        let mut mov = String::new();
+        match listener.accept() {
+            Ok((mut socket, _)) => {
+                socket.read_to_string(&mut mov)?;
+            },
+            Err(e) => println!("Failed to accept socket connection: {}", e),
+        }
+
+
         let seq = mov
             .split(";")
             .filter(|m| !m.is_empty())

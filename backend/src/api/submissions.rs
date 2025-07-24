@@ -109,16 +109,18 @@ impl Submission {
             ),
         };
 
-        let socket_arg = "SOCKET=".to_owned() + &socket_adr;
+        let socket_arg = "SOCK=".to_owned() + &socket_adr;
         Command::new("docker")
             .args([
                 "run",
                 "-u",
                 "root",
+                "-e",
+                &socket_arg,
+                "-v",
+                &(socket_adr.clone() + ":" + &socket_adr),
                 "-i",
                 image,
-//                "-e",
-//                &socket_arg,
                 "sh",
                 "-c",
                 command.as_str(),
