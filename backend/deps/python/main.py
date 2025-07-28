@@ -33,14 +33,11 @@ def main():
     # Envoi des coups trouvés à la console
     move_out = ""
     for move in moves:
-        #print(move, end="")
         move_out += move.__str__()
-    print(move_out)
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
         client.connect(os.environ['SOCK'])
         client.send(move_out.encode("ascii"))
         client.close()
-    print("done")
 
 
 if __name__ == "__main__":

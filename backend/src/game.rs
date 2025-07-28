@@ -85,7 +85,7 @@ fn default_board() -> Board {
 pub struct TurnStatus {
     pub game: GameState,
     pub move_: String,
-    pub ai_out: String,
+    pub ai_output: String,
 }
 
 #[derive(Debug, Serialize, Clone)]

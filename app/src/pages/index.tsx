@@ -99,11 +99,11 @@ export default function Home({ username }: { username: string }) {
               msgType: ConsoleMessageType.Error,
             })
             .concat({
-              msg: turnStatus.move_
-                ? turnStatus.move_.length == 1
-                  ? `Move from ${turnStatus.move_[0].from} to ${turnStatus.move_[0].to} is invalid`
+              msg: turnStatus.move
+                ? turnStatus.move.length == 1
+                  ? `Move from ${turnStatus.move[0].from} to ${turnStatus.move[0].to} is invalid`
                   : "Sequence of moves is invalid : \n" +
-                    turnStatus.move_
+                    turnStatus.move
                       .map((m) => `-> Move from ${m.from} to ${m.to}`)
                       .join("\n")
                 : "No move provided",
@@ -118,21 +118,21 @@ export default function Home({ username }: { username: string }) {
           break;
       }
 
-      if (turnStatus.ai_out && turnStatus.ai_out.length > 0) {
+      setGameOngoing(false);
+    } else {
+      setBoard(rotateBoard(turnStatus.game.board, player)); // update board with server response
+      setCurrentTurn(turnStatus.game.current_player);
+    }
+      if (turnStatus.ai_output && turnStatus.ai_output.length > 0) {
         newConsoleOutput = newConsoleOutput
           .concat({
-            msg: turnStatus.ai_out,
+            msg: turnStatus.ai_output,
             msgType: ConsoleMessageType.Warning,
           });
       }
 
       setConsoleOutput(newConsoleOutput);
 
-      setGameOngoing(false);
-    } else {
-      setBoard(rotateBoard(turnStatus.game.board, player)); // update board with server response
-      setCurrentTurn(turnStatus.game.current_player);
-    }
   }
 
   return (

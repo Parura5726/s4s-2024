@@ -56,26 +56,30 @@ int main() {
     int sock;
     struct sockaddr_un server_addr;
 
-    // 1. Create a socket
+    // Create a socket
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock == -1) {
         perror("socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    // 2. Set up the server address structure
+    // Set up server address
     memset(&server_addr, 0, sizeof(struct sockaddr_un));
     server_addr.sun_family = AF_UNIX;
+    if (std::getenv("SOCK") == nullptr) {
+        perror("SOCK environment variable not defined");
+        exit(EXIT_FAILURE);
+    }
     strncpy(server_addr.sun_path, std::getenv("SOCK"), sizeof(server_addr.sun_path) - 1);
 
-    // 3. Connect to the server
+    // Connect
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_un)) == -1) {
         perror("connection failed");
         close(sock);
         exit(EXIT_FAILURE);
     }
 
-    // 4. Send data to the server
+    // Send moves
     if (send(sock, moves_out.c_str(), moves_out.size(), 0) == -1) {
         perror("sending data failed");
     }

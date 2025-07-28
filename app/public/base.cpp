@@ -1,5 +1,6 @@
 #include <vector>
 #include <optional>
+#include <iostream>
 
 struct Piece {
     char pieceType; // pieceType: 'M' pour pion, 'K' pour dame
@@ -28,6 +29,8 @@ std::vector<Move> findMove(const std::vector<std::vector<std::optional<Piece>>>&
     Position start = {6, 1};
     Position end = {5, 0};
     Move move = {start, end};
+
+    //std::cout << "You can print your debug values here!" << '\n' ;
 
     std::vector<Move> moves;
     moves.push_back(move);

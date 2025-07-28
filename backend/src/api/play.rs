@@ -63,7 +63,7 @@ impl Game {
         stderr.read_to_string(&mut err).await?;
         let ai_output = out + &err;
 
-        println!("output for user {}:\"{}\"", submission.name, ai_output);
+        //println!("output for user {}:\"{}\"", submission.name, ai_output);
         // Read socket
         let mut mov = String::new();
         match listener.accept() {
@@ -72,7 +72,6 @@ impl Game {
             },
             Err(e) => println!("Failed to accept socket connection: {}", e),
         }
-        println!("dupa");
 
         let seq = mov
             .split(";")
@@ -149,6 +148,7 @@ pub async fn start(
         AiOutput { move_: ai_move, console: console } = game.play_ai(submission).await?;
     }
 
+    println!("console output: {}", console);
     let checkers = game.checkers.clone();
 
     let mut lock = state.lock().unwrap();
@@ -157,7 +157,7 @@ pub async fn start(
     Ok(Json(TurnStatus {
         game: checkers,
         move_: ai_move,
-        ai_out: console,
+        ai_output: console,
     }))
 }
 
@@ -188,7 +188,7 @@ pub async fn play(
 
     Ok(Json(TurnStatus {
         game: lock.checkers.clone(),
-        ai_out: output.console,
+        ai_output: output.console,
         move_: output.move_,
     }))
 }

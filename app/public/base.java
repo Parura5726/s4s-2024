@@ -21,6 +21,8 @@ public class Base {
         // Chaque objet Move représente un coup, avec une cellule de départ et une cellule d'arrivée
         // Les classes Position(row, column) et Move(from, to) sont fournies pour vous
 
+        //System.out.println("You can print your debug values here!");
+
         List<Move> moves = List.of(new Move(new Position(6,1), new Position(5,0)));
 
         return moves;

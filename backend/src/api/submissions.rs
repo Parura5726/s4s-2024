@@ -89,7 +89,6 @@ impl Submission {
         };
 
         // TODO: Rewrite to mount submission as volume instead of passing base64
-        // TODO: stdout isn't working
         let (image, command) = match self.lang {
             Language::Cpp => (
                 CPP_IMAGE,
