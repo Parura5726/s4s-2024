@@ -169,7 +169,7 @@ pub async fn post_submission(
     let lang = Language::from_str(lang.as_str())?;
 
     let path = PathBuf::from_str(
-        format!("{}/{}.{}", config().data_dir, user.name, lang.to_string()).as_str(),
+        format!("{}/{}.{}", config().data_dir, user.name, lang).as_str(),
     )
     .unwrap();
 

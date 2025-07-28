@@ -147,7 +147,7 @@ pub async fn start(
             .ok_or(Error::NotFound)?
             .clone();
 
-        AiOutput { move_: ai_move, console: console } = game.play_ai(submission).await?;
+        AiOutput { move_: ai_move, console } = game.play_ai(submission).await?;
     }
 
     println!("console output: {}", console);
