@@ -34,6 +34,7 @@ impl Game {
         // There is one socket per user
 
         // Clean up old sockets and prepare a new one
+        // NOTE: Are we sure /tmp will always exist?
         let socket_adr = format!("/tmp/ai_{}.sock", submission.name);
         let _ = std::fs::remove_file(&socket_adr);
 
@@ -71,7 +72,7 @@ impl Game {
             },
             Err(e) => println!("Failed to accept socket connection: {}", e),
         }
-
+        println!("dupa");
 
         let seq = mov
             .split(";")

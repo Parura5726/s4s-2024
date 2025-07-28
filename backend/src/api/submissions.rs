@@ -88,29 +88,28 @@ impl Submission {
             BASE64_STANDARD.encode(code.as_bytes())
         };
 
-        // TODO: Rewrite java file to use sockets
-        // rewrite the return json and webapp to have the move in a separate field than the
-        // console output
-
+        // TODO: Rewrite to mount submission as volume instead of passing base64
+        // TODO: stdout isn't working
         let (image, command) = match self.lang {
             Language::Cpp => (
                 CPP_IMAGE,
                 format!(
-                    "echo {base_code} | base64 -d > /script.cpp && g++ /script.cpp -o /exe && /exe"
+                    "echo {base_code} | base64 -d > /base.hpp && cp /deps/cpp/* / && g++ /main.cpp -o /a.out && /a.out"
                 ),
             ),
+            // The additional directory is required because of java packages
             Language::Java => (
                 JAVA_IMAGE,
-                format!("echo {base_code} | base64 -d > /script.java && java /script.java"),
+                format!("mkdir /s4s && echo {base_code} | base64 -d > /s4s/Base.java && cp /deps/java/* /s4s/ && javac s4s/*.java && java s4s.Main"),
             ),
             Language::Python => (
                 PYTHON_IMAGE,
-                format!("echo {base_code} | base64 -d > /script.py && python /script.py"),
+                format!("echo {base_code} | base64 -d > /script.py && cp /deps/python/* / && python /main.py"),
             ),
         };
 
         let socket_arg = "SOCK=".to_owned() + &socket_adr;
-        Command::new("docker")
+        Command::new("podman")
             .args([
                 "run",
                 "-u",

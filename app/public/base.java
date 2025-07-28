@@ -1,6 +1,8 @@
+package s4s;
+
 import java.util.List;
 
-public class base {
+public class Base {
     // pieceType: 'M' pour pion, 'K' pour dame
     // pieceColor: 'W' pour blanc, 'B' pour noir
     public record Piece(char pieceType, char pieceColor) {}
