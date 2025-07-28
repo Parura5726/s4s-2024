@@ -34,8 +34,10 @@ impl Game {
         // There is one socket per user
 
         // Clean up old sockets and prepare a new one
-        // NOTE: Are we sure /tmp will always exist?
-        let socket_adr = format!("/tmp/ai_{}.sock", submission.name);
+        let socket_adr = format!("{}/ai_{}.sock",
+            std::env::var("SOCK_DIR").expect("SOCK_DIR not defined"),
+            submission.name
+        );
         let _ = std::fs::remove_file(&socket_adr);
 
         let mut child = submission.start(socket_adr.clone()).await?;

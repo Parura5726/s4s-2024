@@ -9,6 +9,7 @@ You will need the following dependencies:
 - [Rust](rustup.rs)
 - [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 - [docker](https://www.docker.com/get-started/)
+- A Unix-based environment (capable of using UNIX sockets)
 
 ## Set up environment files
 
@@ -21,6 +22,6 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## Run locally
 
-From the `app` directory, run `npm i &&NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev` in your terminal. In parallel, run `mkdir -p data &&DATA_DIR=$PWD/data cargo r` from the `backend` directory.
+From the `app` directory, run `npm i &&NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev` in your terminal. In parallel, run `mkdir -p data sockets && DATA_DIR=$PWD/data SOCK_DIR=$PWD/sockets cargo r` from the `backend` directory.
 
 Now, you can access the website on <http://localhost:3000/s4s>.
