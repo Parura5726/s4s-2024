@@ -108,7 +108,7 @@ impl Submission {
         };
 
         let socket_arg = "SOCK=".to_owned() + &socket_adr;
-        Command::new("podman")
+        Command::new("docker")
             .args([
                 "run",
                 "-u",
