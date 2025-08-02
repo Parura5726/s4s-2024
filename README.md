@@ -6,22 +6,15 @@
 
 You will need the following dependencies:
 
-- [Rust](rustup.rs)
-- [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-- [docker](https://www.docker.com/get-started/)
-- A Unix-based environment (capable of using UNIX sockets)
-
-## Set up environment files
-
-In `app/.env`, put:
-
-```sh
-NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000/s4s
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+- [podman](https://podman.io/) and [buildah](https://buildah.io) to build the container images
+- [docker](https://www.docker.com/get-started/) (optional, podman works too if podman-compose and podman-docker are installed as well)
 
 ## Run locally
 
-From the `app` directory, run `npm i &&NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev` in your terminal. In parallel, run `mkdir -p data sockets && DATA_DIR=$PWD/data SOCK_DIR=$PWD/sockets cargo r` from the `backend` directory.
+Edit the `app/Dockerfile` to set the host environment variables,
+then run the `build-images.sh` script (requires podman and buildah installed).
+
+You can now run `docker compose up`, but it is recommended to run a TLS stripper
+(for example [nginx](https://nginx.org)) to support https.
 
 Now, you can access the website on <http://localhost:3000/s4s>.
