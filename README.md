@@ -15,6 +15,6 @@ Edit the `app/Dockerfile` to set the host environment variables,
 then run the `build-images.sh` script (requires podman and buildah installed).
 
 You can now run `docker compose up`, but it is recommended to run a TLS stripper
-(for example [nginx](https://nginx.org)) to support https.
+(for example [nginx](https://nginx.org)) to support https, otherwise api access may break.
 
-Now, you can access the website on <http://localhost:3000/s4s>.
+Now, you can access the website on <https://localhost/s4s>.
