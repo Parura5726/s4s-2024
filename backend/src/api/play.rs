@@ -76,7 +76,6 @@ impl Game {
         let mov = rx.recv_timeout(Duration::from_millis(5000));
 
         // Kill the runner if it hasn't exited yet
-        // TODO: Rewrite to use docker rm
         if mov.is_err() {
             print!("Program from user {} timed out, killing...", submission.name);
             child.kill()?;

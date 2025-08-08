@@ -335,7 +335,7 @@ impl GameState {
                 let d = vec![p(2, 2), p(2, -2), p(-2, 2), p(-2, -2)];
 
                 d.into_iter()
-                    .filter(|d| (is_valid_capture_move(*d)))
+                    .filter(|d| (is_valid_capture_move*d))
                     .filter_map(|d| {
                         let new_pos = i.pos + d;
                         let captured_pos = i.pos + d / 2;
