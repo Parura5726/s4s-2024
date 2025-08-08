@@ -75,11 +75,23 @@ impl Game {
         let mov = rx.recv_timeout(Duration::from_millis(5000));
 
         // Kill the runner if it hasn't exited yet
-        if mov.is_err() {
+        let Ok(mov) = mov else {
             print!("Program from user {} timed out, killing...", submission.name);
             child.kill()?;
             println!("Killed!");
-        }
+
+            let mut out = String::new();
+            stdout.read_to_string(&mut out).await?;
+
+            let mut err = String::new();
+            stderr.read_to_string(&mut err).await?;
+            let ai_output = out + &err;
+
+            return Err(Error::AIFailed {
+                error: super::AIError::EmptySubmission,
+                ai_output: ai_output + "\nProgram timed out after >5s without output",
+                move_: None});
+        };
 
         let mut out = String::new();
         stdout.read_to_string(&mut out).await?;
@@ -88,13 +100,6 @@ impl Game {
         stderr.read_to_string(&mut err).await?;
         let ai_output = out + &err;
 
-        if mov.is_err() {
-            return Err(Error::AIFailed {
-                error: super::AIError::EmptySubmission,
-                ai_output: ai_output + "\nProgram timed out after >5s without output",
-                move_: None});
-        }
-
         let status = child.status().await?;
         if !status.success() {
             return Err(Error::AIFailed {
@@ -102,8 +107,6 @@ impl Game {
                 ai_output,
                 move_: None});
         }
-
-        let mov = mov.unwrap();
 
         let seq = mov
             .split(";")
