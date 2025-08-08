@@ -14,7 +14,6 @@ use std::{
     io::Read,
     time::Duration,
 };
-use libc::{kill, SIGTERM};
 
 #[derive(Debug)]
 pub struct Game {
@@ -78,9 +77,7 @@ impl Game {
         // Kill the runner if it hasn't exited yet
         if mov.is_err() {
             print!("Program from user {} timed out, killing...", submission.name);
-            unsafe {
-                kill(child.id() as i32, SIGTERM);
-            }
+            child.kill()?;
             println!("Killed!");
         }
 

@@ -3,12 +3,6 @@ FROM node:latest
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-# TODO:
-#ENV NEXT_PUBLIC_API_URL "https://clic.epfl.ch/s4s/api"
-#ENV NEXT_PUBLIC_FRONTEND_URL "https://clic.epfl.ch/s4s"
-ENV NEXT_PUBLIC_API_URL "https://localhost/s4s/api"
-ENV NEXT_PUBLIC_FRONTEND_URL "https://localhost/s4s"
-
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm config set fetch-retry-maxtimeout 600000 -g && npm ci

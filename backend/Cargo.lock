@@ -179,7 +179,6 @@ dependencies = [
  "async-process",
  "base64",
  "envconfig",
- "libc",
  "rocket",
  "serde",
  "serde_json",
