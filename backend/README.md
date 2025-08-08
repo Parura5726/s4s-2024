@@ -80,6 +80,34 @@ Updates the user's submissions.
 
 The code as plain text.
 
+---
+
+### POST `/tournament`
+
+### Response
+
+`json
+{
+  "scores" : {
+    "user1" : {
+      "elo" : 1037.4,
+      "wins" : 15,
+      "losses" : 13,
+      "draws" : 5
+    },
+    "user2" : {
+      "elo" : 1005.3,
+      "wins" : 13,
+      "losses" : 11,
+      "draws" : 9
+    },
+    ...
+  }
+}
+`
+
+JSON similar to the example.
+
 ## Errors
 
 Errors are returned as status code. Most notable ones are:

@@ -99,6 +99,7 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
     print!("Generating all possible games...");
     // Generate games
     // NOTE: get_cloned uses lock_value_accessors, may be removed in the future
+    // TODO: Only get most recent submission from each user?
     let state = state.get_cloned()?;
     let contestants = state.submissions.values();
     contestants.clone().for_each(|c1|
