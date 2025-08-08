@@ -8,10 +8,13 @@ use rocket::{
     tokio::sync::Mutex,
 };
 use std::{
-    sync::{Arc},
+    thread,
+    sync::{Arc,mpsc},
     os::unix::net::UnixListener,
     io::Read,
+    time::Duration,
 };
+use libc::{kill, SIGTERM};
 
 #[derive(Debug)]
 pub struct Game {
@@ -56,7 +59,30 @@ impl Game {
             .write_all(self.checkers.to_csv_string().as_bytes())
             .await
             .map_err(Error::from)?;
-        child.status().await?;
+
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let mut mov = String::new();
+            match listener.accept() {
+                Ok((mut socket, _)) => {
+                    let _ = socket.read_to_string(&mut mov);
+                },
+                Err(e) => println!("Failed to accept socket connection: {}", e),
+            }
+
+            let _ = tx.send(mov);
+        });
+        // Give 5s to compile and run the program
+        let mov = rx.recv_timeout(Duration::from_millis(5000));
+
+        // Kill the runner if it hasn't exited yet
+        if mov.is_err() {
+            print!("Program from user {} timed out, killing...", submission.name);
+            unsafe {
+                kill(child.id() as i32, SIGTERM);
+            }
+            println!("Killed!");
+        }
 
         let mut out = String::new();
         stdout.read_to_string(&mut out).await?;
@@ -65,15 +91,22 @@ impl Game {
         stderr.read_to_string(&mut err).await?;
         let ai_output = out + &err;
 
-        //println!("output for user {}:\"{}\"", submission.name, ai_output);
-        // Read socket
-        let mut mov = String::new();
-        match listener.accept() {
-            Ok((mut socket, _)) => {
-                socket.read_to_string(&mut mov)?;
-            },
-            Err(e) => println!("Failed to accept socket connection: {}", e),
+        if mov.is_err() {
+            return Err(Error::AIFailed {
+                error: super::AIError::EmptySubmission,
+                ai_output: ai_output + "\nProgram timed out after >5s without output",
+                move_: None});
         }
+
+        let status = child.status().await?;
+        if !status.success() {
+            return Err(Error::AIFailed {
+                error: super::AIError::EmptySubmission,
+                ai_output,
+                move_: None});
+        }
+
+        let mov = mov.unwrap();
 
         let seq = mov
             .split(";")

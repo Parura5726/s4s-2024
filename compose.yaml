@@ -1,0 +1,10 @@
+services:
+  frontend:
+    image: s4s-2025_frontend
+    ports: 3000:3000
+
+  backend:
+    image: s4s-2025_backend
+    ports: 8000:8000
+    # not great but the easiest way to run nested containers
+    privileged: true
