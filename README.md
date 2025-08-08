@@ -4,6 +4,8 @@
 
 ### Dependencies
 
+**WARNING: The backend uses rust feature lock_value_accessors which is currently unstable**
+
 You will need the following dependencies:
 
 - [podman](https://podman.io/) and [buildah](https://buildah.io) to build the container images

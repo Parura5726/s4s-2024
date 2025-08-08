@@ -1,5 +1,5 @@
 # Build on a dedicated image to avoid build output in final image
-FROM rust:alpine AS rust_build
+FROM rustlang/rust:nightly-alpine AS rust_build
 
 RUN apk add musl-dev
 

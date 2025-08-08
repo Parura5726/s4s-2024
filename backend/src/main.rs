@@ -1,3 +1,5 @@
+#![feature(lock_value_accessors)]
+
 use api::State;
 use docker::pull_required_images;
 use rocket::fairing::{Fairing, Info, Kind};

@@ -17,7 +17,7 @@ use rocket::{
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf, process::Stdio, str::FromStr};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     Cpp,
@@ -48,7 +48,7 @@ impl FromStr for Language {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Submission {
     pub name: String,
     pub lang: Language,
@@ -88,7 +88,6 @@ impl Submission {
             BASE64_STANDARD.encode(code.as_bytes())
         };
 
-        // TODO: Rewrite to mount submission as volume instead of passing base64
         let (image, command) = match self.lang {
             Language::Cpp => (
                 CPP_IMAGE,

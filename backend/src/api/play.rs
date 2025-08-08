@@ -18,21 +18,22 @@ use libc::{kill, SIGTERM};
 
 #[derive(Debug)]
 pub struct Game {
-    checkers: GameState,
-    human_player: Player,
+    pub checkers: GameState,
+    pub human_player: Player,
 }
 
 fn convert_cell_id(id: &[char]) -> (usize, usize) {
     (id[0] as usize - '0' as usize, id[1] as usize - '0' as usize)
 }
 
-struct AiOutput {
+#[derive(Clone)]
+pub struct AiOutput {
     move_: String,
     console: String,
 }
 
 impl Game {
-    async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
+    async fn get_ai_moves(&self, submission: Submission) -> Result<AiOutput, Error> {
         // We use UNIX sockets for communication with the submission scripts
         // There is one socket per user
 
@@ -76,6 +77,7 @@ impl Game {
         let mov = rx.recv_timeout(Duration::from_millis(5000));
 
         // Kill the runner if it hasn't exited yet
+        // TODO: Rewrite to use docker rm
         if mov.is_err() {
             print!("Program from user {} timed out, killing...", submission.name);
             unsafe {
@@ -120,8 +122,10 @@ impl Game {
             })
             .collect::<Vec<_>>();
 
-        if let Err(Error::InvalidMove) = self.checkers.apply_sequence(&seq) {
-            self.checkers.status = GameStatus::Victory(self.human_player);
+
+        // Just test if sequence is valid
+        //if let Err(Error::InvalidMove) = self.checkers.apply_sequence(&seq) {
+        if self.checkers.list_valid_moves().into_iter().find(|m| m.0 == seq).is_none() {
             return Err(Error::AIFailed {
                 error: super::AIError::InvalidMove,
                 ai_output,
@@ -130,6 +134,34 @@ impl Game {
         }
 
         Ok(AiOutput{ move_: mov, console: ai_output })
+    }
+    pub async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
+        let out = self.get_ai_moves(submission).await;
+        match out.clone() {
+            // Apply sequence for real this time
+            Ok(i) => {
+                let seq = i.move_
+                    .split(";")
+                    .filter(|m| !m.is_empty())
+                    .map(|m| {
+                        let chars = m.chars().collect::<Vec<_>>();
+                        Move {
+                            from: convert_cell_id(&chars[0..=1]),
+                            to: convert_cell_id(&chars[3..=4]),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                let _ = self.checkers.apply_sequence(&seq);
+            },
+            // If the ai failed, make the other one automatically win
+            Err(i) => {
+                if let Error::AIFailed{..} = i {
+                    self.checkers.status = GameStatus::Victory(self.human_player);
+                }
+            }
+        }
+        out
     }
 
     pub async fn play_human(&mut self, moves: Vec<Move>) -> Result<(), Error> {
