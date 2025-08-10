@@ -8,7 +8,7 @@ use crate::{
 };
 use std::collections::HashMap;
 use rand::{seq::SliceRandom,rngs::SmallRng,SeedableRng};
-use rocket::{get,post,serde::json::Json};
+use rocket::{post,serde::json::Json};
 use serde::{
     ser::{Serializer,SerializeStruct},
     Serialize
@@ -51,7 +51,7 @@ struct AiGame {
 
 impl AiGame {
     async fn play(&mut self) -> Option<GameResult> {
-        let current_player = self.game.checkers.current_player.clone();
+        let current_player = self.game.checkers.current_player;
         let current_submission =
             if current_player == Player::White { &self.w_player }
             else { &self.b_player };
@@ -59,6 +59,7 @@ impl AiGame {
         let _ = self.game.play_ai(current_submission.clone()).await;
 
         // Handle draw
+        // TODO: Is this needed?
         if self.turns >= 100 {
             print!("Draw: ");
             return Some(GameResult {
@@ -98,8 +99,7 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
 
     print!("Generating all possible games...");
     // Generate games
-    // NOTE: get_cloned uses lock_value_accessors, may be removed in the future
-    // TODO: Only get most recent submission from each user?
+    // NOTE: get_cloned uses lock_value_accessors, which is unstable
     let state = state.get_cloned()?;
     let contestants = state.submissions.values();
     contestants.clone().for_each(|c1|

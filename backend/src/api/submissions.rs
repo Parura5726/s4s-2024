@@ -15,7 +15,10 @@ use rocket::{
     },
 };
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, path::PathBuf, process::Stdio, str::FromStr};
+use std::{
+    fmt::Display, path::PathBuf, process::Stdio, str::FromStr, ffi::OsString,
+    fs::{remove_file,read_dir}
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -171,6 +174,19 @@ pub async fn post_submission(
         format!("{}/{}.{}", config().data_dir, user.name, lang).as_str(),
     )
     .unwrap();
+
+    // HACK: Remove all other language versions of the code, so we don't duplicates messing up the rankings
+    // This doesn't guarantee removal if other file descriptors are open
+    read_dir(&config().data_dir)
+        .unwrap()
+        .filter(|f| {
+            let f = f.as_ref().unwrap().file_name();
+            f == OsString::from(user.name.clone() + ".python") ||
+            f == OsString::from(user.name.clone() + ".cpp") ||
+            f == OsString::from(user.name.clone() + ".java")
+        })
+        .filter(|f| f.as_ref().unwrap().path() != path)
+        .for_each(|f| remove_file(f.unwrap().path()).expect("could not delete old submission"));
 
     File::create(path.clone())
         .await

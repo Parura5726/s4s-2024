@@ -5,6 +5,9 @@ use std::sync::OnceLock;
 pub struct Config {
     #[envconfig(from = "DATA_DIR")]
     pub data_dir: String,
+    #[envconfig(from = "SOCK_DIR")]
+    pub socks_dir: String,
+
 }
 
 static CONFIG: OnceLock<Config> = OnceLock::new();

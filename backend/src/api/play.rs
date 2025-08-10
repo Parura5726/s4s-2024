@@ -1,5 +1,6 @@
 use super::{submissions::Submission, AppState, Error, User};
 use crate::{
+    config::config,
     game::{GameState, GameStatus, Move, Player, TurnStatus}};
 use rocket::{
     futures::{io::BufReader, AsyncReadExt, AsyncWriteExt},
@@ -38,7 +39,7 @@ impl Game {
 
         // Clean up old sockets and prepare a new one
         let socket_adr = format!("{}/ai_{}.sock",
-            std::env::var("SOCK_DIR").expect("SOCK_DIR not defined"),
+            config().socks_dir,
             submission.name
         );
         let _ = std::fs::remove_file(&socket_adr);
@@ -67,7 +68,7 @@ impl Game {
                 Ok((mut socket, _)) => {
                     let _ = socket.read_to_string(&mut mov);
                 },
-                Err(e) => println!("Failed to accept socket connection: {}", e),
+                Err(e) => println!("Failed to accept socket connection: {e}"),
             }
 
             let _ = tx.send(mov);
@@ -109,22 +110,10 @@ impl Game {
                 move_: None});
         }
 
-        let seq = mov
-            .split(";")
-            .filter(|m| !m.is_empty())
-            .map(|m| {
-                let chars = m.chars().collect::<Vec<_>>();
-                Move {
-                    from: convert_cell_id(&chars[0..=1]),
-                    to: convert_cell_id(&chars[3..=4]),
-                }
-            })
-            .collect::<Vec<_>>();
-
+        let seq = to_move_sequence(&mov);
 
         // Just test if sequence is valid
-        //if let Err(Error::InvalidMove) = self.checkers.apply_sequence(&seq) {
-        if self.checkers.list_valid_moves().into_iter().find(|m| m.0 == seq).is_none() {
+        if !self.checkers.list_valid_moves().into_iter().any(|m| m.0 == seq) {
             return Err(Error::AIFailed {
                 error: super::AIError::InvalidMove,
                 ai_output,
@@ -139,18 +128,7 @@ impl Game {
         match out.clone() {
             // Apply sequence for real this time
             Ok(i) => {
-                let seq = i.move_
-                    .split(";")
-                    .filter(|m| !m.is_empty())
-                    .map(|m| {
-                        let chars = m.chars().collect::<Vec<_>>();
-                        Move {
-                            from: convert_cell_id(&chars[0..=1]),
-                            to: convert_cell_id(&chars[3..=4]),
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
+                let seq = to_move_sequence(&i.move_);
                 let _ = self.checkers.apply_sequence(&seq);
             },
             // If the ai failed, make the other one automatically win
@@ -166,6 +144,19 @@ impl Game {
     pub async fn play_human(&mut self, moves: Vec<Move>) -> Result<(), Error> {
         self.checkers.apply_sequence(&moves)
     }
+}
+
+fn to_move_sequence(mov: &str) -> Vec<Move> {
+    mov.split(";")
+        .filter(|m| !m.is_empty())
+        .map(|m| {
+            let chars = m.chars().collect::<Vec<_>>();
+            Move {
+                from: convert_cell_id(&chars[0..=1]),
+                to: convert_cell_id(&chars[3..=4]),
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 #[get("/game")]
@@ -214,7 +205,7 @@ pub async fn start(
         AiOutput { move_: ai_move, console } = game.play_ai(submission).await?;
     }
 
-    println!("console output: {}", console);
+    println!("console output: {console}");
     let checkers = game.checkers.clone();
 
     let mut lock = state.lock().unwrap();

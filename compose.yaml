@@ -2,9 +2,6 @@ services:
   frontend:
     image: s4s-2025_frontend
     ports: 3000:3000
-    environment:
-      NEXT_PUBLIC_API_URL: "https://localhost/s4s/api"
-      NEXT_PUBLIC_FRONTEND_URL: "https://localhost/s4s"
 
   backend:
     image: s4s-2025_backend
