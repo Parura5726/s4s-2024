@@ -61,7 +61,6 @@ impl AiGame {
         // Handle draw
         // TODO: Is this needed?
         if self.turns >= 100 {
-            print!("Draw: ");
             return Some(GameResult {
                 winner: self.w_player.clone(),
                 loser: self.b_player.clone(),
@@ -71,7 +70,6 @@ impl AiGame {
 
         // Handle victory
         if let GameStatus::Victory(winner) = self.game.checkers.status {
-            print!("Victory: ");
             let (winner,loser) = if winner == Player::White { (self.w_player.clone(), self.b_player.clone()) }
             else { (self.b_player.clone(), self.w_player.clone()) };
             return Some(GameResult {
@@ -81,7 +79,6 @@ impl AiGame {
             });
         }
 
-        print!("Running...");
         None
     }
 }
@@ -97,7 +94,7 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
     let mut games = vec![];
     let mut scores: HashMap<String, Score> = HashMap::new();
 
-    print!("Generating all possible games...");
+    print!("Running tournament...");
     // Generate games
     // NOTE: get_cloned uses lock_value_accessors, which is unstable
     let state = state.get_cloned()?;
@@ -113,22 +110,17 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
             });
         })
     );
-    println!("Done!");
 
     // Ensure fairness for calculating elo
     let mut rng = SmallRng::from_os_rng();
     games.shuffle(&mut rng);
 
-    println!("Playing games...");
     // Play games
     for mut game in games {
         loop {
-            print!("Playing {} vs {}...", game.w_player.name, game.b_player.name);
             let result = game.play().await;
-            println!("Done!");
 
             if let Some(i) = result {
-                println!("Winner: {}, loser: {}, draw: {}",i.winner.name, i.loser.name, i.draw);
                 let winner_sb = scores.get(&i.winner.name).copied().unwrap_or_default();
                 let loser_sb = scores.get(&i.loser.name).copied().unwrap_or_default();
 
@@ -138,7 +130,6 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
                     &loser_sb.elo,
                     if i.draw { &Outcomes::DRAW } else { &Outcomes::WIN },
                     &EloConfig::default());
-                println!("Calculated elo");
 
                 // Generate and insert new scoreboard values
                 let (winner_sb,loser_sb) = if i.draw {
@@ -151,12 +142,11 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
 
                 scores.insert(i.winner.name, winner_sb);
                 scores.insert(i.loser.name, loser_sb);
-                println!("Inserted new scores");
                 break;
             }
         }
     }
-    println!("DONE PLAYING GAMES");
+    println!("Done!");
 
     Ok(Json(Scoreboard{scores}))
 }
