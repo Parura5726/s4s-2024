@@ -1,7 +1,7 @@
 use super::{submissions::Submission, AppState, Error, User};
 use crate::{
     config::config,
-    game::{GameState, GameStatus, Move, Player, TurnStatus}};
+    game::{GameState, GameStatus, Move, Player, TurnStatus, sequence_to_string}};
 use rocket::{
     futures::{io::BufReader, AsyncReadExt, AsyncWriteExt},
     get, post,
@@ -60,6 +60,16 @@ impl Game {
             .write_all(self.checkers.to_csv_string().as_bytes())
             .await
             .map_err(Error::from)?;
+
+        // Move sequences are in the format 61,50:50,41;61,52;
+        let possible_moves_string = self.checkers.list_valid_moves()
+            .iter()
+            .fold(String::new(), |out, moveseq| format!("{}{};", out, sequence_to_string(moveseq)));
+        stdin
+            .write_all(possible_moves_string.as_bytes())
+            .await
+            .map_err(Error::from)?;
+
 
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {

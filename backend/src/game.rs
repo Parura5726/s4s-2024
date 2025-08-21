@@ -122,6 +122,14 @@ pub struct Move {
     pub to: Position,
 }
 
+pub fn sequence_to_string(sequence: &MoveSequence) -> String {
+    let out = sequence.0.iter().fold(String::new(), |out, mov|
+        format!("{}{}{},{}{}:", out, mov.from.0, mov.from.1, mov.to.0, mov.to.1));
+    // Remove trailing ':'
+    let mut out_chars = out.chars();
+    out_chars.next_back();
+    out_chars.as_str().into()
+}
 fn is_valid_pos(pos: Pos) -> bool {
     0 <= pos.x && pos.x < BOARD_SIZE as i32 && 0 <= pos.y && pos.y < BOARD_SIZE as i32
 }
@@ -335,7 +343,7 @@ impl GameState {
                 let d = vec![p(2, 2), p(2, -2), p(-2, 2), p(-2, -2)];
 
                 d.into_iter()
-                    .filter(|d| (is_valid_capture_move(*d)))
+                    .filter(|d| is_valid_capture_move(*d))
                     .filter_map(|d| {
                         let new_pos = i.pos + d;
                         let captured_pos = i.pos + d / 2;

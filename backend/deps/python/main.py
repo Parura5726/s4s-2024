@@ -1,7 +1,7 @@
 import socket
 import os
 
-import script
+from script import Move,Position,Piece,find_move
 
 def main():
     board = [
@@ -17,20 +17,35 @@ def main():
         row = line.split(",")
         for c, piece_code in enumerate(row):
             if piece_code:
-                board[r][c] = script.Piece(piece_code[0], piece_code[1])
+                board[r][c] = Piece(piece_code[0], piece_code[1])
             else:
                 board[r][c] = None
+
+    # TODO: Read possible moves from stdin
+    possible_moves = []
+    pmoves_in = input().strip()
+    for moveseq in pmoves_in.split(';'):
+        if moveseq:
+            for move in moveseq.split(':').enumerate():
+                possible_moves.append([Move(Position(move[0], move[1]), Position(move[3], move[4]))])
 
     board = ""
     player_color = ""
     # Appel de la fonction findMove pour trouver les coups à jouer
-    moves = script.find_move(board, player_color)
+
+    print("running program")
+
+    moves = find_move(board, player_color, possible_moves)
+
+    print("done running program")
 
     if not moves:
         raise Exception("No moves were returned.")
         return
 
     # Envoi des coups trouvés à la console
+    print("sending program output to", os.environ['SOCK'])
+
     move_out = ""
     for move in moves:
         move_out += move.__str__()

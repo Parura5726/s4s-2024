@@ -175,7 +175,6 @@ pub async fn post_submission(
     )
     .unwrap();
 
-    // HACK: Remove all other language versions of the code, so we don't duplicates messing up the rankings
     // This doesn't guarantee removal if other file descriptors are open
     read_dir(&config().data_dir)
         .unwrap()
