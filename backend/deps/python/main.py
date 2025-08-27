@@ -2,10 +2,8 @@ import socket
 import os
 
 from script import Move,Position,Piece,find_move
-print("running program")
 
 def main():
-    print("running program")
     board = [
         [None for _ in range(10)] for _ in range(10)
     ]
@@ -36,17 +34,15 @@ def main():
     player_color = ""
 
     # Appel de la fonction findMove pour trouver les coups à jouer
-    print("running submission")
     moves = find_move(board, player_color, possible_moves)
-    print("done running program")
 
     if not moves:
         raise Exception("No moves were returned.")
         return
 
-    # Envoi des coups trouvés à la console
-    print("sending program output to", os.environ['SOCK'])
+    #print("sending program output to", os.environ['SOCK'])
 
+    # Envoi des coups trouvés à la console
     move_out = ""
     for move in moves:
         move_out += move.__str__()
