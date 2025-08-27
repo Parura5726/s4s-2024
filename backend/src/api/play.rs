@@ -64,7 +64,8 @@ impl Game {
         // Move sequences are in the format 61,50:50,41;61,52;
         let possible_moves_string = self.checkers.list_valid_moves()
             .iter()
-            .fold(String::new(), |out, moveseq| format!("{}{};", out, sequence_to_string(moveseq)));
+            .fold(String::new(), |out, moveseq| format!("{}{};", out, sequence_to_string(moveseq)))
+             + "\n";
         stdin
             .write_all(possible_moves_string.as_bytes())
             .await

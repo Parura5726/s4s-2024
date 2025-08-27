@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# DEPRECATED, DO NOT USE FOR DOCKER DEPLOYMENTS
+
 # Compile all images using podman/buildah from a single script, can then be pushed to a repo or copied directly
 # We use buildah because it allows building an image with device passthrough (required for fuse-overlayfs)
 
