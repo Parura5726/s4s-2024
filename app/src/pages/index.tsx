@@ -118,21 +118,21 @@ export default function Home({ username }: { username: string }) {
           break;
       }
 
-      if (turnStatus.ai_output && turnStatus.ai_output.length > 0) {
-        newConsoleOutput = newConsoleOutput
-          .concat({
-            msg: turnStatus.ai_output,
-            msgType: ConsoleMessageType.Warning,
-          });
-      }
-
-      setConsoleOutput(newConsoleOutput);
-
       setGameOngoing(false);
     } else {
       setBoard(rotateBoard(turnStatus.game.board, player)); // update board with server response
       setCurrentTurn(turnStatus.game.current_player);
     }
+
+    if (turnStatus.ai_output && turnStatus.ai_output.length > 0) {
+      newConsoleOutput = newConsoleOutput
+        .concat({
+          msg: turnStatus.ai_output,
+          msgType: ConsoleMessageType.Warning,
+        });
+    }
+
+    setConsoleOutput(newConsoleOutput);
   }
 
   return (

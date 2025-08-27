@@ -68,7 +68,7 @@ impl Submission {
         })
     }
 
-    pub async fn start(&self) -> Result<Child, Error> {
+    pub async fn start(&self, socket_adr: String) -> Result<Child, Error> {
         let metadata = fs::metadata(self.code.clone()).await;
         if metadata.is_err() || metadata.is_ok_and(|m| m.len() == 0) {
             return Err(Error::AIFailed {
@@ -88,28 +88,35 @@ impl Submission {
             BASE64_STANDARD.encode(code.as_bytes())
         };
 
+        // TODO: Rewrite to mount submission as volume instead of passing base64
         let (image, command) = match self.lang {
             Language::Cpp => (
                 CPP_IMAGE,
                 format!(
-                    "echo {base_code} | base64 -d > /script.cpp && g++ /script.cpp -o /exe && /exe"
+                    "echo {base_code} | base64 -d > /base.hpp && cp /deps/cpp/* / && g++ /main.cpp -o /a.out && /a.out"
                 ),
             ),
+            // The additional directory is required because of java packages
             Language::Java => (
                 JAVA_IMAGE,
-                format!("echo {base_code} | base64 -d > /script.java && java /script.java"),
+                format!("mkdir /s4s && echo {base_code} | base64 -d > /s4s/Base.java && cp /deps/java/* /s4s/ && javac s4s/*.java && java s4s.Main"),
             ),
             Language::Python => (
                 PYTHON_IMAGE,
-                format!("echo {base_code} | base64 -d > /script.py && python /script.py"),
+                format!("echo {base_code} | base64 -d > /script.py && cp /deps/python/* / && python /main.py"),
             ),
         };
 
+        let socket_arg = "SOCK=".to_owned() + &socket_adr;
         Command::new("docker")
             .args([
                 "run",
                 "-u",
                 "root",
+                "-e",
+                &socket_arg,
+                "-v",
+                &(socket_adr.clone() + ":" + &socket_adr),
                 "-i",
                 image,
                 "sh",
@@ -162,7 +169,7 @@ pub async fn post_submission(
     let lang = Language::from_str(lang.as_str())?;
 
     let path = PathBuf::from_str(
-        format!("{}/{}.{}", config().data_dir, user.name, lang.to_string()).as_str(),
+        format!("{}/{}.{}", config().data_dir, user.name, lang).as_str(),
     )
     .unwrap();
 

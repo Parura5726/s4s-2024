@@ -1,16 +1,19 @@
 use super::{submissions::Submission, AppState, Error, User};
-use crate::game::{GameState, GameStatus, Move, Player, TurnStatus};
-use regex::Regex;
+use crate::{
+    game::{GameState, GameStatus, Move, Player, TurnStatus}};
 use rocket::{
-    futures::{io::BufReader, AsyncBufReadExt, AsyncReadExt, AsyncWriteExt},
+    futures::{io::BufReader, AsyncReadExt, AsyncWriteExt},
     get, post,
     serde::json::Json,
     tokio::sync::Mutex,
 };
-use std::sync::{Arc, LazyLock};
-
-static AI_OUTPUT_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new("^(\\d{2},\\d{2};)+$").unwrap());
+use std::{
+    thread,
+    sync::{Arc,mpsc},
+    os::unix::net::UnixListener,
+    io::Read,
+    time::Duration,
+};
 
 #[derive(Debug)]
 pub struct Game {
@@ -22,13 +25,29 @@ fn convert_cell_id(id: &[char]) -> (usize, usize) {
     (id[0] as usize - '0' as usize, id[1] as usize - '0' as usize)
 }
 
+struct AiOutput {
+    move_: String,
+    console: String,
+}
+
 impl Game {
-    pub async fn play_ai(&mut self, submission: Submission) -> Result<String, Error> {
-        let mut child = submission.start().await?;
+    async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
+        // We use UNIX sockets for communication with the submission scripts
+        // There is one socket per user
+
+        // Clean up old sockets and prepare a new one
+        let socket_adr = format!("{}/ai_{}.sock",
+            std::env::var("SOCK_DIR").expect("SOCK_DIR not defined"),
+            submission.name
+        );
+        let _ = std::fs::remove_file(&socket_adr);
+
+        let mut child = submission.start(socket_adr.clone()).await?;
 
         let mut stdin = child.stdin.take().unwrap();
         let mut stdout = BufReader::new(child.stdout.take().unwrap());
         let mut stderr = BufReader::new(child.stderr.take().unwrap());
+        let listener = UnixListener::bind(socket_adr)?;
 
         stdin
             .write_all(format!("{}\n", self.checkers.current_player).as_bytes())
@@ -40,24 +59,56 @@ impl Game {
             .await
             .map_err(Error::from)?;
 
-        child.status().await?;
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let mut mov = String::new();
+            match listener.accept() {
+                Ok((mut socket, _)) => {
+                    let _ = socket.read_to_string(&mut mov);
+                },
+                Err(e) => println!("Failed to accept socket connection: {}", e),
+            }
 
-        let mut line = String::new();
-        stdout.read_line(&mut line).await?;
-        let line = line.trim();
+            let _ = tx.send(mov);
+        });
+        // Give 5s to compile and run the program
+        let mov = rx.recv_timeout(Duration::from_millis(5000));
 
-        let mut ai_output = String::new();
-        stderr.read_to_string(&mut ai_output).await?;
+        // Kill the runner if it hasn't exited yet
+        let Ok(mov) = mov else {
+            print!("Program from user {} timed out, killing...", submission.name);
+            child.kill()?;
+            println!("Killed!");
 
-        if !AI_OUTPUT_REGEX.is_match(line) {
+            let mut out = String::new();
+            stdout.read_to_string(&mut out).await?;
+
+            let mut err = String::new();
+            stderr.read_to_string(&mut err).await?;
+            let ai_output = out + &err;
+
             return Err(Error::AIFailed {
-                error: super::AIError::InvalidOutput,
+                error: super::AIError::EmptySubmission,
+                ai_output: ai_output + "\nProgram timed out after >5s without output",
+                move_: None});
+        };
+
+        let mut out = String::new();
+        stdout.read_to_string(&mut out).await?;
+
+        let mut err = String::new();
+        stderr.read_to_string(&mut err).await?;
+        let ai_output = out + &err;
+
+        let status = child.status().await?;
+        if !status.success() {
+            return Err(Error::AIFailed {
+                error: super::AIError::EmptySubmission,
                 ai_output,
-                move_: None,
-            });
+                move_: None});
         }
 
-        let seq = line
+        let seq = mov
             .split(";")
             .filter(|m| !m.is_empty())
             .map(|m| {
@@ -78,7 +129,7 @@ impl Game {
             });
         }
 
-        Ok(ai_output)
+        Ok(AiOutput{ move_: mov, console: ai_output })
     }
 
     pub async fn play_human(&mut self, moves: Vec<Move>) -> Result<(), Error> {
@@ -118,7 +169,8 @@ pub async fn start(
         checkers: checkers.clone(),
     };
 
-    let mut ai_output = String::new();
+    let mut ai_move = String::new();
+    let mut console = String::new();
     if !is_first_player {
         let submission = state
             .lock()
@@ -128,9 +180,10 @@ pub async fn start(
             .ok_or(Error::NotFound)?
             .clone();
 
-        ai_output = game.play_ai(submission).await?;
+        AiOutput { move_: ai_move, console } = game.play_ai(submission).await?;
     }
 
+    println!("console output: {}", console);
     let checkers = game.checkers.clone();
 
     let mut lock = state.lock().unwrap();
@@ -138,7 +191,8 @@ pub async fn start(
 
     Ok(Json(TurnStatus {
         game: checkers,
-        ai_output,
+        move_: ai_move,
+        ai_output: console,
     }))
 }
 
@@ -169,7 +223,8 @@ pub async fn play(
 
     Ok(Json(TurnStatus {
         game: lock.checkers.clone(),
-        ai_output: output,
+        ai_output: output.console,
+        move_: output.move_,
     }))
 }
 

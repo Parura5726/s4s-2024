@@ -1,10 +1,3 @@
-# Setup runtime image
-FROM docker:latest AS runtime
-
-RUN apk update --no-cache
-RUN apk upgrade --no-cache
-RUN apk add ca-certificates openssl
-
 # Build on a dedicated image to avoid build output in final image
 FROM rust:alpine AS rust_build
 
@@ -23,13 +16,19 @@ RUN cargo build-deps --release
 COPY src ./src
 RUN cargo build --release
 
-# Copies build result into runtime image
-FROM runtime
+# Setup runtime image
+FROM mgoltzsche/podman:latest AS runtime
+
+RUN apk add ca-certificates openssl
 
 WORKDIR /app
 
-ENV DATA_DIR = /data
+# Setup and copy the build result
+
+ENV DATA_DIR /data
 RUN mkdir /data
+ENV SOCK_DIR /sockets
+RUN mkdir /sockets
 
 ENV ROCKET_ADDRESS=0.0.0.0
 
