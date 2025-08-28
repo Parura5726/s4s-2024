@@ -96,9 +96,9 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
 
     print!("Running tournament...");
     // Generate games
-    // NOTE: get_cloned uses lock_value_accessors, which is unstable
-    let state = state.get_cloned()?;
-    let contestants = state.submissions.values();
+    let lock = state.lock()?.clone();
+    let contestants = lock.submissions.values();
+
     contestants.clone().for_each(|c1|
         contestants.clone().for_each(|c2| {
             if c1 == c2 { return; }

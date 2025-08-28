@@ -4,8 +4,6 @@
 
 ### Dependencies
 
-**WARNING: The backend uses rust feature lock_value_accessors which is currently unstable**
-
 You will need the following:
 
 - [docker](https://www.docker.com/get-started/)
@@ -21,8 +19,8 @@ Run `docker build -t s4s-2025_frontend app` and `docker build -t s4s-2025_runner
 You can now run `docker run -p 3000:3000 s4s-2025_frontend` to deploy the frontend.
 
 To deploy the backend, run (in the `backend/` directory)
-`DATA_DIR=/your/data/directory SOCK_DIR=/your/socket/directory cargo +nightly run`,
-with DATA_DIR and SOCK_DIR set appropriately (and empty).
+`DATA_DIR=/your/data/directory SOCK_DIR=/your/socket/directory cargo run`,
+with DATA\_DIR and SOCK\_DIR set appropriately (and empty).
 
 On its own, this will likely not work without a TLS stripper (due to Next.js making all its
 requests by HTTPS), so an example [nginx](https://nginx.org), configuration is provided,
