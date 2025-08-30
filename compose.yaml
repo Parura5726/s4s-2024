@@ -1,10 +1,49 @@
 services:
   frontend:
-    image: s4s-2025_frontend
-    ports: 3000:3000
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: s4s_frontend
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://localhost/s4s/api
+      - NEXT_PUBLIC_FRONTEND_URL=https://localhost/s4s
+    expose:
+      - "3000"
 
   backend:
-    image: s4s-2025_backend
-    ports: 8000:8000
-    # not great but the easiest way to run nested containers
-    privileged: true
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: s4s_backend
+    working_dir: /app
+    environment:
+      - DATA_DIR=/data
+      - SOCK_DIR=/sockets
+      - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_PORT=8000
+    volumes:
+      - ./data:/data
+      - ./sockets:/sockets
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "8000"
+    command: cargo run
+
+  caddy:
+    image: caddy:2
+    container_name: s4s_caddy
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  caddy_data:
+  caddy_config:
