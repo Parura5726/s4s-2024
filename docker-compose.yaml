@@ -1,20 +1,21 @@
 services:
   frontend:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
-    container_name: s4s_frontend
+    image: node:22-bullseye
+    user: 1000:1000
+    working_dir: /app
+    volumes:
+      - ./app:/app
+    command: sh -c "npm i && npm run dev"
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://localhost/s4s/api
-      - NEXT_PUBLIC_FRONTEND_URL=https://localhost/s4s
-    expose:
-      - "3000"
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost/s4s/api
+      - NEXT_PUBLIC_FRONTEND_URL=http://localhost/s4s
 
   backend:
     build:
-      context: ./backend
+      context: backend
       dockerfile: Dockerfile.dev
+    user: 1000:1000
     container_name: s4s_backend
     working_dir: /app
     environment:
@@ -23,11 +24,10 @@ services:
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
     volumes:
+      - ./backend:/app
       - ./data:/data
       - ./sockets:/sockets
       - /var/run/docker.sock:/var/run/docker.sock
-    expose:
-      - "8000"
     command: cargo run
 
   caddy:
@@ -35,15 +35,9 @@ services:
     container_name: s4s_caddy
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
     ports:
       - "80:80"
       - "443:443"
     depends_on:
       - frontend
       - backend
-
-volumes:
-  caddy_data:
-  caddy_config:
