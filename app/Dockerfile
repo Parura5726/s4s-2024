@@ -3,8 +3,8 @@ FROM node:latest
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-ENV NEXT_PUBLIC_API_URL "https://localhost/s4s/api"
-ENV NEXT_PUBLIC_FRONTEND_URL "https://localhost/s4s"
+ENV NEXT_PUBLIC_API_URL "https://clic.epfl.ch/s4s/api"
+ENV NEXT_PUBLIC_FRONTEND_URL "https://clic.epfl.ch/s4s"
 
 WORKDIR /app
 COPY package.json package-lock.json ./
