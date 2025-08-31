@@ -16,8 +16,9 @@ pub mod contest;
 pub mod play;
 pub mod submissions;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct State {
+    // There is no reason for this to be a hashmap instead of a vector
     pub submissions: HashMap<String, Submission>,
     pub games: HashMap<String, Arc<rocket::tokio::sync::Mutex<Game>>>,
 }
@@ -59,6 +60,7 @@ pub fn routes() -> Vec<Route> {
         play::stop,
         play::play,
         login,
+        contest::run_tournament,
     ]
 }
 
@@ -76,7 +78,7 @@ pub async fn login(name: &str, state: &AppState) -> rocket::http::Status {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize,Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum AIError {
     InvalidMove,
@@ -84,7 +86,7 @@ pub enum AIError {
     EmptySubmission,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize,Clone)]
 #[serde(untagged)]
 pub enum Error {
     IO,

@@ -1,5 +1,5 @@
 # Build on a dedicated image to avoid build output in final image
-FROM rust:alpine AS rust_build
+FROM docker.io/rustlang/rust:nightly-alpine AS rust_build
 
 RUN apk add musl-dev
 
@@ -17,7 +17,7 @@ COPY src ./src
 RUN cargo build --release
 
 # Setup runtime image
-FROM mgoltzsche/podman:latest AS runtime
+FROM docker.io/mgoltzsche/podman:latest AS runtime
 
 RUN apk add ca-certificates openssl
 

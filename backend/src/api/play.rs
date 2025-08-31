@@ -1,6 +1,7 @@
 use super::{submissions::Submission, AppState, Error, User};
 use crate::{
-    game::{GameState, GameStatus, Move, Player, TurnStatus}};
+    config::config,
+    game::{GameState, GameStatus, Move, Player, TurnStatus, sequence_to_string}};
 use rocket::{
     futures::{io::BufReader, AsyncReadExt, AsyncWriteExt},
     get, post,
@@ -17,27 +18,28 @@ use std::{
 
 #[derive(Debug)]
 pub struct Game {
-    checkers: GameState,
-    human_player: Player,
+    pub checkers: GameState,
+    pub human_player: Player,
 }
 
 fn convert_cell_id(id: &[char]) -> (usize, usize) {
     (id[0] as usize - '0' as usize, id[1] as usize - '0' as usize)
 }
 
-struct AiOutput {
+#[derive(Clone)]
+pub struct AiOutput {
     move_: String,
     console: String,
 }
 
 impl Game {
-    async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
+    async fn get_ai_moves(&self, submission: Submission) -> Result<AiOutput, Error> {
         // We use UNIX sockets for communication with the submission scripts
         // There is one socket per user
 
         // Clean up old sockets and prepare a new one
         let socket_adr = format!("{}/ai_{}.sock",
-            std::env::var("SOCK_DIR").expect("SOCK_DIR not defined"),
+            config().socks_dir,
             submission.name
         );
         let _ = std::fs::remove_file(&socket_adr);
@@ -59,6 +61,17 @@ impl Game {
             .await
             .map_err(Error::from)?;
 
+        // Move sequences are in the format 61,50:50,41;61,52;
+        let possible_moves_string = self.checkers.list_valid_moves()
+            .iter()
+            .fold(String::new(), |out, moveseq| format!("{}{};", out, sequence_to_string(moveseq)))
+             + "\n";
+        stdin
+            .write_all(possible_moves_string.as_bytes())
+            .await
+            .map_err(Error::from)?;
+
+
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {
             let mut mov = String::new();
@@ -66,7 +79,7 @@ impl Game {
                 Ok((mut socket, _)) => {
                     let _ = socket.read_to_string(&mut mov);
                 },
-                Err(e) => println!("Failed to accept socket connection: {}", e),
+                Err(e) => println!("Failed to accept socket connection: {e}"),
             }
 
             let _ = tx.send(mov);
@@ -108,20 +121,10 @@ impl Game {
                 move_: None});
         }
 
-        let seq = mov
-            .split(";")
-            .filter(|m| !m.is_empty())
-            .map(|m| {
-                let chars = m.chars().collect::<Vec<_>>();
-                Move {
-                    from: convert_cell_id(&chars[0..=1]),
-                    to: convert_cell_id(&chars[3..=4]),
-                }
-            })
-            .collect::<Vec<_>>();
+        let seq = to_move_sequence(&mov);
 
-        if let Err(Error::InvalidMove) = self.checkers.apply_sequence(&seq) {
-            self.checkers.status = GameStatus::Victory(self.human_player);
+        // Just test if sequence is valid
+        if !self.checkers.list_valid_moves().into_iter().any(|m| m.0 == seq) {
             return Err(Error::AIFailed {
                 error: super::AIError::InvalidMove,
                 ai_output,
@@ -131,10 +134,40 @@ impl Game {
 
         Ok(AiOutput{ move_: mov, console: ai_output })
     }
+    pub async fn play_ai(&mut self, submission: Submission) -> Result<AiOutput, Error> {
+        let out = self.get_ai_moves(submission).await;
+        match out.clone() {
+            // Apply sequence for real this time
+            Ok(i) => {
+                let seq = to_move_sequence(&i.move_);
+                let _ = self.checkers.apply_sequence(&seq);
+            },
+            // If the ai failed, make the other one automatically win
+            Err(i) => {
+                if let Error::AIFailed{..} = i {
+                    self.checkers.status = GameStatus::Victory(self.human_player);
+                }
+            }
+        }
+        out
+    }
 
     pub async fn play_human(&mut self, moves: Vec<Move>) -> Result<(), Error> {
         self.checkers.apply_sequence(&moves)
     }
+}
+
+fn to_move_sequence(mov: &str) -> Vec<Move> {
+    mov.split(";")
+        .filter(|m| !m.is_empty())
+        .map(|m| {
+            let chars = m.chars().collect::<Vec<_>>();
+            Move {
+                from: convert_cell_id(&chars[0..=1]),
+                to: convert_cell_id(&chars[3..=4]),
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 #[get("/game")]
@@ -183,7 +216,7 @@ pub async fn start(
         AiOutput { move_: ai_move, console } = game.play_ai(submission).await?;
     }
 
-    println!("console output: {}", console);
+    println!("console output: {console}");
     let checkers = game.checkers.clone();
 
     let mut lock = state.lock().unwrap();

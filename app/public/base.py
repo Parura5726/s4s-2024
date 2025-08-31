@@ -26,7 +26,7 @@ class Move:
         return self.__str__()
 
 
-def find_move(board, player_color):
+def find_move(board, player_color, possible_moves):
 
     # TODO: Implémentez ici la logique pour trouver les coups à jouer et les retourner
     # Les coups doivent être retournés sous forme d'une liste d'objets Move,
@@ -35,7 +35,8 @@ def find_move(board, player_color):
 
     #print("You can print your debug values here!")
 
-    moves = [Move(Position(6, 1), Position(5, 0))]
+    #moves = [Move(Position(6, 1), Position(5, 0))]
+    moves = possible_moves[0]
 
     return moves
 
