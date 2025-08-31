@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <cstring>
+#include <vector>
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -35,8 +36,38 @@ int main() {
         }
     }
 
+    // Get the valid moves, c-style (very unsafe)
+    std::string line;
+    std::getline(std::cin, line);
+    const char* moves_in = line.c_str();
+    char* current_char = const_cast<char*>(moves_in);
+    std::vector<std::vector<Move>> possible_moves;
+    std::vector<Move>* current_moveseq = new std::vector<Move>();
+    while (*current_char != 0x00) {
+
+        // If it is ':', everything is fine
+
+        // If it is ';' add the current sequence to the move list, start a new sequence
+        if (*current_char == ';') {
+            possible_moves.push_back(*current_moveseq);
+            current_moveseq = new std::vector<Move>();
+        }
+
+        // If it is a number, add the whole move to the current sequence
+        if (*current_char >= 0x30 && *current_char <= 0x39) {
+            Position from = { *current_char++ - 0x30, *current_char++ - 0x30 };
+            current_char++; // (the ',')
+            Position to = { *current_char++ - 0x30, *current_char - 0x30 };
+
+            Move move = { from, to };
+            current_moveseq->push_back(move);
+        }
+
+        current_char++;
+    }
+
     // Appel de la fonction findMove pour trouver les coups à jouer
-    auto moves = findMove(board, playerColor);
+    auto moves = findMove(board, playerColor, possible_moves);
 
     if (moves.empty()) {
         std::cerr << "No moves were returned." << std::endl;
@@ -47,7 +78,7 @@ int main() {
     std::stringstream moves_out_ss;
     for (const auto& pos : moves) {
         moves_out_ss
-            << pos.from.row << pos.from.column << "," 
+            << pos.from.row << pos.from.column << ","
             << pos.to.row << pos.to.column << ";";
     }
     std::string moves_out = moves_out_ss.str();
