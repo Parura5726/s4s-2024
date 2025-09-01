@@ -12,7 +12,7 @@ You will need the following:
 
 ## Deploy
 
-Run `docker build -t s4s_runner ./backend/deps`
+Run `docker build -t s4s_runner ./runner`
 
 Run `docker compose up`
 

@@ -30,6 +30,9 @@ RUN mkdir /data
 ENV SOCK_DIR /sockets
 RUN mkdir /sockets
 
+ENV SOCK_VOL=s4s_sockets
+ENV DOCKER_HOST=unix:///var/run/docker.sock
+
 ENV ROCKET_ADDRESS=0.0.0.0
 
 COPY --from=rust_build /app/target/release/backend ./backend
