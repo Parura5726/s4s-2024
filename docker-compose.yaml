@@ -1,10 +1,12 @@
+name: s4s
 volumes:
-  s4s_sockets:
+  sockets:
 
 services:
   frontend:
     image: node:22-bullseye
     user: 1000:1000
+    container_name: s4s_frontend
     working_dir: /app
     volumes:
       - ./app:/app
@@ -33,7 +35,7 @@ services:
     volumes:
       - ./backend:/app
       - ./data:/data
-      - s4s_sockets:/sockets
+      - sockets:/sockets
       - /var/run/docker.sock:/var/run/docker.sock
     command: cargo run
 
