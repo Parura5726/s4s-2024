@@ -1,0 +1,14 @@
+{
+	auto_https off
+}
+
+http://localhost:80 {
+	# Frontend under /s4s
+	reverse_proxy /s4s/* http://frontend:3000
+
+	# Backend API under /s4s/api
+	handle_path /s4s/api/* {
+		# handle_path strips /s4s/api and forwards to Rocket root
+		reverse_proxy http://backend:8000
+	}
+}

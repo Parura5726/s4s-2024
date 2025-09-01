@@ -1,5 +1,5 @@
-import { API_URL, FRONTEND_URL } from '@/api/config';
-import { SubmissionLanguage } from '../api/models';
+import { SubmissionLanguage } from "../api/models";
+import config from "@/../next.config.mjs";
 
 export const initFiles: {
   [lang: string]: {
@@ -15,7 +15,7 @@ export const initFiles: {
 export async function getInitialCode(
   lang: SubmissionLanguage
 ): Promise<string> {
-  const path = `${FRONTEND_URL}/base.${initFiles[lang].extension}`;
+  const path = `${config.basePath || ""}/base.${initFiles[lang].extension}`;
   const code = await fetch(path);
   return await code.text();
 }

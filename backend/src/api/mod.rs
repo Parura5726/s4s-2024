@@ -29,19 +29,20 @@ impl State {
             submissions: read_dir(config().data_dir.clone())?
                 .filter_map(|d| d.ok())
                 .filter(|d| d.file_type().is_ok_and(|t| t.is_file()))
-                .map(|d| {
+                .filter_map(|d| {
                     let file_name = d.file_name();
                     let binding = dbg!(file_name.into_string().unwrap());
-                    let (name, lang) = binding.rsplit_once('.').unwrap();
 
-                    (
-                        name.to_string(),
-                        Submission {
-                            name: name.to_string(),
-                            lang: Language::from_str(lang).unwrap(),
-                            code: d.path(),
-                        },
-                    )
+                    binding.rsplit_once('.').map(|(name, lang)| {
+                        (
+                            name.to_string(),
+                            Submission {
+                                name: name.to_string(),
+                                lang: Language::from_str(lang).unwrap(),
+                                code: d.path(),
+                            },
+                        )
+                    })
                 })
                 .collect(),
             ..Default::default()
