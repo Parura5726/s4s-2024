@@ -10,12 +10,14 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost/s4s/api
       - NEXT_PUBLIC_FRONTEND_URL=http://localhost/s4s
+    depends_on:
+      - backend
 
   backend:
     build:
       context: backend
       dockerfile: Dockerfile.dev
-    user: 1000:1000
+    user: root
     container_name: s4s_backend
     working_dir: /app
     environment:
@@ -23,6 +25,7 @@ services:
       - SOCK_DIR=/sockets
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - ./backend:/app
       - ./data:/data
