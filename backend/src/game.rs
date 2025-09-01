@@ -123,15 +123,19 @@ pub struct Move {
 }
 
 pub fn sequence_to_string(sequence: &MoveSequence) -> String {
-    let out = sequence.0.iter().fold(String::new(), |out, mov|
-        format!("{}{}{},{}{}:", out, mov.from.0, mov.from.1, mov.to.0, mov.to.1));
+    let out = sequence.0.iter().fold(String::new(), |out, mov| {
+        format!(
+            "{}{}{},{}{}:",
+            out, mov.from.0, mov.from.1, mov.to.0, mov.to.1
+        )
+    });
     // Remove trailing ':'
     let mut out_chars = out.chars();
     out_chars.next_back();
     out_chars.as_str().into()
 }
 fn is_valid_pos(pos: Pos) -> bool {
-    0 <= pos.x && pos.x < BOARD_SIZE as i32 && 0 <= pos.y && pos.y < BOARD_SIZE as i32
+    pos.x >= 0 && pos.x < BOARD_SIZE as i32 && pos.y >= 0 && pos.y < BOARD_SIZE as i32
 }
 
 fn at(board: &Board, pos: Pos) -> Option<&Piece> {
@@ -298,119 +302,116 @@ impl GameState {
         }
 
         fn list_valid_moves_for_man(state: &GameState, i: Intermediate) -> Vec<Intermediate> {
-            let is_valid_capture_move = |d: Pos| {
+            let mut moves: Vec<Intermediate> = Vec::new();
+
+            // Check for captures in all four diagonal directions
+            let capture_dirs = vec![p(2, 2), p(2, -2), p(-2, 2), p(-2, -2)];
+            for d in capture_dirs {
                 let new_pos = i.pos + d;
                 let captured_pos = i.pos + d / 2;
 
-                is_valid_pos(new_pos)
+                if is_valid_pos(new_pos)
                     && at(&state.board, new_pos).is_none()
                     && at(&state.board, captured_pos)
                         .is_some_and(|p| p.player != state.current_player)
-            };
+                {
+                    if let Some(new_i) = update_intermediate(new_pos, Some(captured_pos), i.clone())
+                    {
+                        let subsequent_moves = list_valid_moves_for_man(state, new_i.clone());
+                        if subsequent_moves.is_empty() {
+                            // No more captures possible, this is a terminal move
+                            moves.push(new_i);
+                        } else {
+                            // Continue the capture sequence
+                            moves.extend(subsequent_moves);
+                        }
+                    }
+                }
+            }
 
-            let mut moves: Vec<Intermediate> = if i.captures.is_empty() {
+            // If no captures were found, and this is not a multi-jump sequence,
+            // check for non-capture moves.
+            if moves.is_empty() && i.captures.is_empty() {
                 let dv = match state.current_player {
                     Player::White => -1,
                     Player::Black => 1,
                 };
 
-                let d = vec![p(dv, 1), p(dv, -1)];
-
-                d.into_iter()
-                    .filter(|d| is_valid_pos(i.pos + *d))
-                    .flat_map(|d| {
-                        if at(&state.board, i.pos + d).is_none() {
-                            vec![Intermediate {
-                                pos: i.pos + d,
-                                captures: vec![],
-                                moves: vec![mov(i.pos, i.pos + d)],
-                            }]
-                        } else if is_valid_capture_move(d * 2) {
-                            list_valid_moves_for_man(
-                                state,
-                                Intermediate {
-                                    pos: i.pos + d * 2,
-                                    captures: vec![i.pos + d],
-                                    moves: vec![mov(i.pos, i.pos + d * 2)],
-                                },
-                            )
-                        } else {
-                            vec![]
+                let non_capture_dirs = vec![p(dv, 1), p(dv, -1)];
+                for d in non_capture_dirs {
+                    let new_pos = i.pos + d;
+                    if is_valid_pos(new_pos) && at(&state.board, new_pos).is_none() {
+                        if let Some(new_i) = update_intermediate(new_pos, None, i.clone()) {
+                            moves.push(new_i);
                         }
-                    })
-                    .collect()
-            } else {
-                let d = vec![p(2, 2), p(2, -2), p(-2, 2), p(-2, -2)];
-
-                d.into_iter()
-                    .filter(|d| is_valid_capture_move(*d))
-                    .filter_map(|d| {
-                        let new_pos = i.pos + d;
-                        let captured_pos = i.pos + d / 2;
-                        update_intermediate(new_pos, Some(captured_pos), i.clone())
-                    })
-                    .flat_map(|i| list_valid_moves_for_man(state, i))
-                    .collect()
-            };
-
-            if !i.moves.is_empty() {
-                moves.push(i);
+                    }
+                }
             }
 
             moves
         }
 
         fn list_valid_moves_for_king(state: &GameState, i: Intermediate) -> Vec<Intermediate> {
-            let d = vec![p(1, 1), p(1, -1), p(-1, 1), p(-1, -1)];
-            let must_capture = !i.captures.is_empty();
+            let mut moves: Vec<Intermediate> = Vec::new();
+            let dirs = vec![p(1, 1), p(1, -1), p(-1, 1), p(-1, -1)];
 
-            let mut moves: Vec<Intermediate> = d
-                .into_iter()
-                .flat_map(|delta| {
-                    let next = (1..BOARD_SIZE).fold(
-                        (None, vec![], false),
-                        |(capturable, moves, done), distance| {
-                            let pos = i.pos + delta * distance as i32;
-
-                            if done || !is_valid_pos(pos) {
-                                return (capturable, moves, true);
-                            }
-
-                            match at(&state.board, pos) {
-                                Some(p) if p.player == state.current_player => {
-                                    (capturable, moves, true)
+            // Check for captures
+            for d in &dirs {
+                let mut captured_piece_pos = None;
+                for dist in 1..BOARD_SIZE as i32 {
+                    let current_pos = i.pos + *d * dist;
+                    if !is_valid_pos(current_pos) {
+                        break;
+                    }
+                    match at(&state.board, current_pos) {
+                        Some(p) => {
+                            if p.player != state.current_player {
+                                if captured_piece_pos.is_none() {
+                                    captured_piece_pos = Some(current_pos);
+                                } else {
+                                    break; // Two pieces in a row, invalid
                                 }
-                                Some(_) => (Some(pos), moves, capturable.is_some()),
-                                None => {
-                                    if !must_capture || capturable.is_some() {
-                                        let mut new_moves = moves.clone();
-                                        new_moves.push((pos, capturable));
-                                        (capturable, new_moves, done)
+                            } else {
+                                break; // Blocked by own piece
+                            }
+                        }
+                        None => {
+                            if let Some(c_pos) = captured_piece_pos {
+                                if !i.captures.contains(&c_pos) {
+                                    let mut new_i = i.clone();
+                                    new_i.moves.push(mov(i.pos, current_pos));
+                                    new_i.captures.push(c_pos);
+                                    new_i.pos = current_pos;
+                                    let subsequent_moves =
+                                        list_valid_moves_for_king(state, new_i.clone());
+                                    if subsequent_moves.is_empty() {
+                                        moves.push(new_i);
                                     } else {
-                                        (capturable, moves, done)
+                                        moves.extend(subsequent_moves);
                                     }
                                 }
                             }
-                        },
-                    );
-
-                    next.1
-                })
-                .flat_map(|(new_pos, captures)| {
-                    if let Some(i) = update_intermediate(new_pos, captures, i.clone()) {
-                        if captures.is_some() {
-                            list_valid_moves_for_king(state, i)
-                        } else {
-                            vec![i]
                         }
-                    } else {
-                        vec![]
                     }
-                })
-                .collect::<Vec<_>>();
+                }
+            }
 
-            if !i.moves.is_empty() {
-                moves.push(i);
+            // If no captures were found, and this isn't a continuation of a capture sequence,
+            // generate non-capture moves
+            if moves.is_empty() && i.captures.is_empty() {
+                for d in &dirs {
+                    for dist in 1..BOARD_SIZE as i32 {
+                        let new_pos = i.pos + *d * dist;
+                        if is_valid_pos(new_pos) && at(&state.board, new_pos).is_none() {
+                            let mut new_i = i.clone();
+                            new_i.moves.push(mov(i.pos, new_pos));
+                            new_i.pos = new_pos;
+                            moves.push(new_i);
+                        } else {
+                            break; // Stop at the first piece or out-of-bounds square
+                        }
+                    }
+                }
             }
 
             moves
