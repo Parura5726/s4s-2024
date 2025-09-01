@@ -1,3 +1,6 @@
+volumes:
+  s4s_sockets:
+
 services:
   frontend:
     image: node:22-bullseye
@@ -23,13 +26,14 @@ services:
     environment:
       - DATA_DIR=/data
       - SOCK_DIR=/sockets
+      - SOCK_VOL=s4s_sockets
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - ./backend:/app
       - ./data:/data
-      - ./sockets:/sockets
+      - s4s_sockets:/sockets
       - /var/run/docker.sock:/var/run/docker.sock
     command: cargo run
 
