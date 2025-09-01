@@ -118,7 +118,7 @@ impl Submission {
                 "-e",
                 &socket_arg,
                 "-v",
-                &(socket_adr.clone() + ":" + &socket_adr),
+                &format!("{}:{}", config().socks_vol, config().socks_dir),
                 "-i",
                 image,
                 "sh",

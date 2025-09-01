@@ -18,7 +18,7 @@ export function requireSession<T extends { [key: string]: any }>(
 
     if (!session) {
       return onFailure !== undefined
-        ? onFailure(context)
+        ? await onFailure(context)
         : { redirect: { destination: "/login", permanent: false } };
     } else {
       return await onSuccess(context, session);

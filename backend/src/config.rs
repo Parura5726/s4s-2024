@@ -7,7 +7,8 @@ pub struct Config {
     pub data_dir: String,
     #[envconfig(from = "SOCK_DIR")]
     pub socks_dir: String,
-
+    #[envconfig(from = "SOCK_VOL")]
+    pub socks_vol: String,
 }
 
 static CONFIG: OnceLock<Config> = OnceLock::new();

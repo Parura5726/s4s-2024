@@ -1,7 +1,12 @@
+name: s4s
+volumes:
+  sockets:
+
 services:
   frontend:
     image: node:22-bullseye
     user: 1000:1000
+    container_name: s4s_frontend
     working_dir: /app
     volumes:
       - ./app:/app
@@ -10,23 +15,27 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost/s4s/api
       - NEXT_PUBLIC_FRONTEND_URL=http://localhost/s4s
+    depends_on:
+      - backend
 
   backend:
     build:
       context: backend
       dockerfile: Dockerfile.dev
-    user: 1000:1000
+    user: root
     container_name: s4s_backend
     working_dir: /app
     environment:
       - DATA_DIR=/data
       - SOCK_DIR=/sockets
+      - SOCK_VOL=s4s_sockets
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - ./backend:/app
       - ./data:/data
-      - ./sockets:/sockets
+      - sockets:/sockets
       - /var/run/docker.sock:/var/run/docker.sock
     command: cargo run
 
