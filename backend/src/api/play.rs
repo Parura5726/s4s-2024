@@ -158,6 +158,7 @@ impl Game {
 }
 
 fn to_move_sequence(mov: &str) -> Vec<Move> {
+    println!("converting move sequence {mov}");
     mov.split(";")
         .filter(|m| !m.is_empty())
         .map(|m| {
