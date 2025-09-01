@@ -113,6 +113,7 @@ impl Submission {
         Command::new("docker")
             .args([
                 "run",
+                "--rm",
                 "-u",
                 "root",
                 "-e",
