@@ -8,7 +8,7 @@ use crate::{
 };
 use std::collections::HashMap;
 use rand::{seq::SliceRandom,rngs::SmallRng,SeedableRng};
-use rocket::{post,serde::json::Json};
+use rocket::{get, post, serde::json::Json};
 use serde::{
     ser::{Serializer,SerializeStruct},
     Serialize
@@ -17,7 +17,7 @@ use skillratings::{elo::{elo,EloConfig,EloRating},Outcomes};
 
 // The original code was clearly never designed for this
 
-#[derive(Serialize,Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Scoreboard {
     scores: HashMap<String,Score>,
 }
@@ -147,6 +147,13 @@ pub async fn run_tournament(state: &AppState) -> Result<Json<Scoreboard>, Error>
         }
     }
     println!("Done!");
+    let scoreboard = Scoreboard{scores};
+    state.lock()?.scoreboard = Some(scoreboard.clone());
 
-    Ok(Json(Scoreboard{scores}))
+    Ok(Json(scoreboard))
+}
+
+#[get("/tournament")]
+pub async fn get_scoreboard(state: &AppState) -> Result<Json<Scoreboard>, Error> {
+    Ok(Json(state.lock()?.scoreboard.clone().ok_or(Error::NotFound)?))
 }

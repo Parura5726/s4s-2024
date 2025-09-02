@@ -11,6 +11,7 @@ use std::{collections::HashMap, fs::read_dir, io::Cursor, str::FromStr, sync::Ar
 use submissions::{Language, Submission};
 
 use crate::{config::config, game::Move};
+use crate::api::contest::Scoreboard;
 
 pub mod contest;
 pub mod play;
@@ -21,6 +22,7 @@ pub struct State {
     // There is no reason for this to be a hashmap instead of a vector
     pub submissions: HashMap<String, Submission>,
     pub games: HashMap<String, Arc<rocket::tokio::sync::Mutex<Game>>>,
+    pub scoreboard: Option<Scoreboard>,
 }
 
 impl State {
