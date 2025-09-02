@@ -1,33 +1,10 @@
-import { useState, useEffect } from "react";
-
-type PlayerStats = {
-  elo: number;
-  wins: number;
-  losses: number;
-  draws: number;
-};
-
-type ScoresResponse = {
-  scores: Record<string, PlayerStats>;
-};
-
-// Example JSON for testing
-const exampleData: ScoresResponse = {
-  scores: {
-    user1: { elo: 1037.4, wins: 15, losses: 13, draws: 5 },
-    user2: { elo: 1005.3, wins: 13, losses: 11, draws: 9 },
-    user3: { elo: 1100.1, wins: 20, losses: 5, draws: 3 },
-    user4: { elo: 950.7, wins: 10, losses: 12, draws: 4 },
-  },
-};
+import { useState } from "react";
+import {getScoreboard} from "@/api/api";
+import {Scoreboard} from "@/api/models";
 
 export default function LeaderboardPage() {
-  const [scores, setScores] = useState<Record<string, PlayerStats> | null>(null);
-
-  useEffect(() => {
-    // Instead of fetching, just set the example JSON
-    setScores(exampleData.scores);
-  }, []);
+  const [scores, setScores] = useState<Scoreboard | null>(null);
+    getScoreboard().then((data) => setScores(data.scores));
 
   return (
     <div className="leaderboard-container">

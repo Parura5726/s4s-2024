@@ -22,7 +22,6 @@ pub struct State {
     // There is no reason for this to be a hashmap instead of a vector
     pub submissions: HashMap<String, Submission>,
     pub games: HashMap<String, Arc<rocket::tokio::sync::Mutex<Game>>>,
-    pub scoreboard: Option<Scoreboard>,
 }
 
 impl State {
@@ -35,15 +34,15 @@ impl State {
                     let file_name = d.file_name();
                     let binding = dbg!(file_name.into_string().unwrap());
 
-                    binding.rsplit_once('.').map(|(name, lang)| {
-                        (
+                    binding.rsplit_once('.').and_then(|(name, lang)| {
+                        Some((
                             name.to_string(),
                             Submission {
                                 name: name.to_string(),
-                                lang: Language::from_str(lang).unwrap(),
+                                lang: Language::from_str(lang).ok()?,
                                 code: d.path(),
                             },
-                        )
+                        ))
                     })
                 })
                 .collect(),
@@ -64,6 +63,7 @@ pub fn routes() -> Vec<Route> {
         play::play,
         login,
         contest::run_tournament,
+        contest::get_scoreboard,
     ]
 }
 
