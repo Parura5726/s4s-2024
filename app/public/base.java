@@ -22,7 +22,7 @@ public class Base {
         // Chaque objet Move représente un coup, avec une cellule de départ et une cellule d'arrivée
         // Les classes Position(row, column) et Move(from, to) sont fournies pour vous
 
-        //System.out.println("You can print your debug values here!");
+        //System.out.println("Vous pouvez afficher des valeurs de votre programme ici: " + possibleMoves.get(0).get(0).from.row);
 
         // possibleMoves contient toutes les séquences de mouvements possibles.
         return possibleMoves.get(0);
